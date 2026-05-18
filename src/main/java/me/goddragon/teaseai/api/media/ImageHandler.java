@@ -107,10 +107,18 @@ public class ImageHandler {
     }
 
     private File getDownloadImagePathFromUrl(String url) {
-        final String[] split = url.split("/");
-        final String path = split[split.length - 1];
-        final String downloadPath = MediaURL.IMAGE_DOWNLOAD_PATH + File.separator + path;
-        return new File(downloadPath);
+        try {
+            URL parsed = new URL(url);
+            String path = parsed.getPath();
+            path = path.substring(path.lastIndexOf('/') + 1);
+            return new File(MediaURL.IMAGE_DOWNLOAD_PATH + File.separator + path);
+        } catch (java.net.MalformedURLException e) {
+            // Fallback: strip at '?' manually
+            String path = url.substring(url.lastIndexOf('/') + 1);
+            int q = path.indexOf('?');
+            if (q >= 0) path = path.substring(0, q);
+            return new File(MediaURL.IMAGE_DOWNLOAD_PATH + File.separator + path);
+        }
     }
 
     private boolean tryDownloadImageFromURL(String url, File downloadPath) {

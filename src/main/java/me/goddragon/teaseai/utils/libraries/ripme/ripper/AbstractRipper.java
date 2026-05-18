@@ -328,38 +328,27 @@ public abstract class AbstractRipper
     }
 
     public static String getFileName(URL url, String fileName, String extension) {
+        // Use the path component only (no query string, no fragment) for all filename derivation.
+        String urlPath = url.getPath();
+        String lastPathSegment = urlPath.substring(urlPath.lastIndexOf('/') + 1);
+
         String saveAs;
         if (fileName != null) {
             saveAs = fileName;
         } else {
-            saveAs = url.toExternalForm();
-            saveAs = saveAs.substring(saveAs.lastIndexOf('/') + 1);
+            saveAs = lastPathSegment;
         }
         if (extension == null) {
-            // Get the extension of the file
-            String[] lastBitOfURL = url.toExternalForm().split("/");
-
-            String[] lastBit = lastBitOfURL[lastBitOfURL.length - 1].split(".");
-            if (lastBit.length != 0) {
-                extension = lastBit[lastBit.length - 1];
-                saveAs = saveAs + "." + extension;
+            int dotIndex = lastPathSegment.lastIndexOf('.');
+            if (dotIndex >= 0) {
+                extension = lastPathSegment.substring(dotIndex + 1);
             }
         }
 
-        if (saveAs.indexOf('?') >= 0) {
-            saveAs = saveAs.substring(0, saveAs.indexOf('?'));
-        }
-        if (saveAs.indexOf('#') >= 0) {
-            saveAs = saveAs.substring(0, saveAs.indexOf('#'));
-        }
-        if (saveAs.indexOf('&') >= 0) {
-            saveAs = saveAs.substring(0, saveAs.indexOf('&'));
-        }
-        if (saveAs.indexOf(':') >= 0) {
-            saveAs = saveAs.substring(0, saveAs.indexOf(':'));
-        }
         if (extension != null) {
-            saveAs = saveAs + "." + extension;
+            if (!saveAs.endsWith("." + extension)) {
+                saveAs = saveAs + "." + extension;
+            }
         }
         return saveAs;
     }

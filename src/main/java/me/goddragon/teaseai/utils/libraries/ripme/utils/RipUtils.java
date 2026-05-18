@@ -70,6 +70,9 @@ public class RipUtils {
                 logger.log(Level.WARNING, "Exception while retrieving gfycat page:", e);
             }
             return result;
+        } else if (url.getHost().endsWith("redgifs.com")) {
+            // RedGifs is video-only — skip it
+            return result;
         } else if (url.toExternalForm().contains("vidble.com/album/") || url.toExternalForm().contains("vidble.com/show/")) {
             try {
                 logger.log(Level.INFO, "Getting vidble album " + url);

@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -155,6 +156,9 @@ public class RedditRipper extends AlbumRipper {
             if (data.getBoolean("is_self")) {
                 // TODO Parse self text
                 handleBody(data.getString("selftext"), data.getString("id"), data.getString("title"));
+            } else if (data.optBoolean("is_gallery", false) && data.has("media_metadata")) {
+                // Reddit gallery post
+                handleGallery(data);
             } else {
                 // Get link
                 handleURL(data.getString("url"), data.getString("id"), data.getString("title"));
@@ -167,6 +171,76 @@ public class RedditRipper extends AlbumRipper {
                     parseJsonChild(replies.getJSONObject(i));
                 }
             }
+        }
+    }
+
+    private void handleGallery(JSONObject data) {
+        String id = data.getString("id");
+        String title = data.getString("title");
+        JSONObject mediaMetadata = data.getJSONObject("media_metadata");
+
+        // Use gallery_data.items for ordered media IDs if available
+        List<String> orderedIds = new ArrayList<>();
+        if (data.has("gallery_data")) {
+            JSONArray items = data.getJSONObject("gallery_data").optJSONArray("items");
+            if (items != null) {
+                for (int i = 0; i < items.length(); i++) {
+                    orderedIds.add(items.getJSONObject(i).getString("media_id"));
+                }
+            }
+        }
+        if (orderedIds.isEmpty()) {
+            orderedIds.addAll(mediaMetadata.keySet());
+        }
+
+        String subdirectory = "";
+        if (Utils.getConfigBoolean("reddit.use_sub_dirs", true) && Utils.getConfigBoolean("album_titles.save", true)) {
+            subdirectory = title;
+        }
+
+        int index = 0;
+        for (String mediaId : orderedIds) {
+            if (!mediaMetadata.has(mediaId)) continue;
+            JSONObject meta = mediaMetadata.getJSONObject(mediaId);
+            if (!"valid".equals(meta.optString("status"))) continue;
+            if (!meta.has("s")) continue;
+
+            // Derive extension from the preview URL path (before any query string),
+            // then construct a permanent i.redd.it URL that never expires.
+            String ext = null;
+            if (meta.has("s")) {
+                JSONObject source = meta.getJSONObject("s");
+                String previewUrl = null;
+                if (source.has("u") && !source.isNull("u")) {
+                    previewUrl = source.getString("u").replace("&amp;", "&");
+                } else if (source.has("gif") && !source.isNull("gif")) {
+                    previewUrl = source.getString("gif").replace("&amp;", "&");
+                }
+                if (previewUrl != null) {
+                    try {
+                        String path = new URL(previewUrl).getPath();
+                        int dot = path.lastIndexOf('.');
+                        if (dot >= 0) ext = path.substring(dot); // e.g. ".jpeg"
+                    } catch (MalformedURLException ignored) {}
+                }
+            }
+            if (ext == null) {
+                // Fallback: derive from mime type
+                String mime = meta.optString("m", "image/jpeg");
+                ext = mime.contains("png") ? ".png" : mime.contains("gif") ? ".gif" : ".jpg";
+            }
+
+            String imageUrl = "https://i.redd.it/" + mediaId + ext;
+            String prefix = id;
+            if (Utils.getConfigBoolean("download.save_order", true)) {
+                prefix += String.format("%03d-", index + 1);
+            }
+            try {
+                addURLToDownload(new URL(imageUrl), prefix, subdirectory, data.getString("url"), null);
+            } catch (MalformedURLException e) {
+                LOGGER.log(Level.WARNING, "Bad gallery image URL: " + imageUrl, e);
+            }
+            index++;
         }
     }
 
@@ -269,6 +343,13 @@ public class RedditRipper extends AlbumRipper {
         Matcher m = p.matcher(url.toExternalForm());
         if (m.matches()) {
             return "user_" + m.group(m.groupCount());
+        }
+
+        // Gallery
+        p = Pattern.compile("^https?://[a-zA-Z0-9.]{0,4}reddit\\.com/gallery/([a-zA-Z0-9]+).*$");
+        m = p.matcher(url.toExternalForm());
+        if (m.matches()) {
+            return "gallery_" + m.group(1);
         }
 
         // Post
