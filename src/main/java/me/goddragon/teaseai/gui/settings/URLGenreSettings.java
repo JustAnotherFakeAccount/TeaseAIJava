@@ -104,7 +104,9 @@ public class URLGenreSettings {
         });
 
         for (MediaFetishType mediaFetishType : MediaFetishType.values()) {
-            settingsController.urlFetishTypeList.getItems().add(mediaFetishType);
+            if (mediaFetishType != MediaFetishType.CUSTOM_TAGGED) {
+                settingsController.urlFetishTypeList.getItems().add(mediaFetishType);
+            }
         }
 
         settingsController.urlFetishTypeList.getSelectionModel().selectFirst();

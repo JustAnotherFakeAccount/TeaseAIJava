@@ -27,7 +27,7 @@ public class ChatHandler {
 
     private static ChatHandler handler = new ChatHandler();
 
-    private TypeSpeed typeSpeed = TypeSpeed.valueOf(TeaseAI.application.DEFAULT_TYPE_SPEED.getValue());
+    private TypeSpeed typeSpeed;
 
     private Color defaultChatColor = Color.BLACK;
 
@@ -60,6 +60,7 @@ public class ChatHandler {
     private TextToSpeech textToSpeech;
 
     public ChatHandler() {
+        this.typeSpeed = TypeSpeed.valueOf(TeaseAI.application.DEFAULT_TYPE_SPEED.getValue());
         this.dateColor = Color.DARKGRAY;
 
         TextFlow textFlow = TeaseAI.application.getController().getChatWindow();

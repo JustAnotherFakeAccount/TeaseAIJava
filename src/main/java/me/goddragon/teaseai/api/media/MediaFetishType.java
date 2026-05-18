@@ -102,6 +102,9 @@ public enum MediaFetishType {
 
     @Override
     public String toString() {
+        if (this == CUSTOM_TAGGED) {
+            return "Custom Tagged";
+        }
         return StringUtils.capitalize(super.toString().toLowerCase());
     }
 }

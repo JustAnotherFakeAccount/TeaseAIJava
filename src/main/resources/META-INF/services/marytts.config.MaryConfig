@@ -1,0 +1,3 @@
+marytts.config.MainConfig
+marytts.language.en.EnglishConfig
+marytts.voice.DfkiPrudenceHsmm.Config
