@@ -105,6 +105,31 @@ public class TeaseAI extends Application {
         this.application = this;
         this.mainThread = Thread.currentThread();
         this.primaryStage = primaryStage;
+
+        // Set window icon (all platforms)
+        try {
+            primaryStage.getIcons().add(new javafx.scene.image.Image(
+                    getClass().getResourceAsStream("/TAJSYSLOGO.png")));
+        } catch (Exception e) {
+            TeaseLogger.getLogger().log(Level.WARNING, "Failed to set window icon: " + e);
+        }
+
+        // Set macOS dock icon via Taskbar API (AWT is already initialized in Main.main())
+        if (Main.OPERATING_SYSTEM.contains("mac")) {
+            try {
+                java.awt.image.BufferedImage dockIcon = javax.imageio.ImageIO.read(
+                        getClass().getResourceAsStream("/TAJSYSLOGO.png"));
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    try {
+                        java.awt.Taskbar.getTaskbar().setIconImage(dockIcon);
+                    } catch (Exception ex) {
+                        TeaseLogger.getLogger().log(Level.WARNING, "Failed to set dock icon: " + ex);
+                    }
+                });
+            } catch (Exception e) {
+                TeaseLogger.getLogger().log(Level.WARNING, "Failed to load dock icon: " + e);
+            }
+        }
         this.startupProgressPane = new StartupProgressPane();
 
         //Load config values first
@@ -144,6 +169,11 @@ public class TeaseAI extends Application {
         };
 
         progressForm.bindProgressBar(task);
+        task.setOnFailed(event -> {
+            Throwable t = task.getException();
+            TeaseLogger.getLogger().log(Level.SEVERE, "Startup task failed: " + t);
+            t.printStackTrace();
+        });
         startupProgressPane.addProgressBar(progressForm);
         startupProgressPane.show();
 
@@ -234,6 +264,11 @@ public class TeaseAI extends Application {
 
         progressForm.bindProgressBar(task);
         task.setOnSucceeded(event -> startupProgressPane.getDialogStage().close());
+        task.setOnFailed(event -> {
+            Throwable t = task.getException();
+            TeaseLogger.getLogger().log(Level.SEVERE, "GUI setup task failed: " + t);
+            t.printStackTrace();
+        });
         Thread thread = new Thread(task);
         thread.start();
         //startupProgressPane.addProgressBar(progressForm);

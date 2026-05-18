@@ -21,7 +21,18 @@ public class Main {
     public static String OPERATING_SYSTEM = System.getProperty("os.name").toLowerCase();
 
     public static void main(String[] args) {
+        // Must be set before AWT initializes for the macOS dock name to take effect
+        System.setProperty("apple.awt.application.name", "TeaseAI");
+
+        // Force AWT initialization now, on the main thread, before JavaFX starts.
+        // Without this, attempting to set the dock icon from the JavaFX thread triggers
+        // AWT EDT startup mid-flight which crashes with a native macOS dock tile error.
+        if (OPERATING_SYSTEM.contains("mac")) {
+            java.awt.Toolkit.getDefaultToolkit();
+        }
+
         TeaseLogger.getLogger().log(Level.INFO, "Launching with command: '" + getCommandOfCurrentProcess() + "'");
+        TeaseLogger.getLogger().log(Level.INFO, "JVM args: " + ManagementFactory.getRuntimeMXBean().getInputArguments());
 
         TeaseLogger.getLogger().log(Level.INFO, "Checking libraries for updates...");
         UpdateHandler.getHandler().checkLibraries();
