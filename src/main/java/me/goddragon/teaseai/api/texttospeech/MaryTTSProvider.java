@@ -2,7 +2,6 @@ package me.goddragon.teaseai.api.texttospeech;
 
 import marytts.LocalMaryInterface;
 import marytts.MaryInterface;
-import marytts.exceptions.MaryConfigurationException;
 
 import javax.sound.sampled.AudioInputStream;
 import java.util.logging.Level;
@@ -31,10 +30,9 @@ public class MaryTTSProvider extends TTSProvider implements TTSVoicable {
                 System.setProperty("java.version", javaVersion);
             }
 
-        } catch (MaryConfigurationException ex) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Throwable e) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "MaryTTS failed to initialize", e);
+            throw new RuntimeException("MaryTTS failed to initialize", e);
         }
     }
 
@@ -73,7 +71,7 @@ public class MaryTTSProvider extends TTSProvider implements TTSVoicable {
 
     @Override
     public void preFetchAudio(String text) throws Exception {
-        if(text.trim().isEmpty()) {
+        if (text.trim().isEmpty()) {
             return;
         }
 

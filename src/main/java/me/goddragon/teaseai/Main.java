@@ -38,6 +38,16 @@ public class Main {
             }
         }
 
+        // Also consider JavaFX available if it's bundled in the fat jar
+        if (!containsJavaFx) {
+            try {
+                Class.forName("javafx.application.Application");
+                containsJavaFx = true;
+            } catch (ClassNotFoundException e) {
+                // not bundled, fall through to restart logic
+            }
+        }
+
         if (!containsJavaFx && JAVA_VERSION > 10) {
             try {
                 //Re-launch the app itself with VM option passed
