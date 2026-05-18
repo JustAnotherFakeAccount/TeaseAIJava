@@ -66,6 +66,8 @@ public enum PictureTag {
     SPH("TagSPH", TagType.CATEGORY),
     CENSORED("TagCensored", TagType.CATEGORY),
     CUCKOLD("TagCuckold", TagType.CATEGORY),
+    BBC("TagBBC", TagType.CATEGORY),
+    CHASTITY("TagChastity", TagType.CATEGORY),
 
     //VIEW
     SIDE_VIEW("TagSideView", TagType.VIEW),

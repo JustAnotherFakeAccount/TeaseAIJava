@@ -15,7 +15,9 @@ import java.util.logging.Level;
  */
 public enum MediaFetishType {
 
-    HARDCORE, SOFTCORE, LESBIAN, BLOWJOB, FEMDOM, LEZDOM, HENTAI, GAY, MALEDOM, CAPTIONS, GENERAL, BOOBS, BUTTS, TEASE, CUSTOM_TAGGED;
+    HARDCORE, SOFTCORE, LESBIAN, BLOWJOB, FEMDOM, LEZDOM, HENTAI, GAY, MALEDOM, CAPTIONS, GENERAL, BOOBS, BUTTS, TEASE,
+    SPH, CUCKOLD, HUMILIATION, BETA, CENSORED, BBC, CHASTITY,
+    CUSTOM_TAGGED;
 
     private Map<MediaType, Map<MediaHolderType, ConfigValue>> configValues = new HashMap<>();
 
@@ -102,9 +104,9 @@ public enum MediaFetishType {
 
     @Override
     public String toString() {
-        if (this == CUSTOM_TAGGED) {
-            return "Custom Tagged";
-        }
+        if (this == CUSTOM_TAGGED) return "Custom Tagged";
+        if (this == SPH) return "SPH";
+        if (this == BBC) return "BBC";
         return StringUtils.capitalize(super.toString().toLowerCase());
     }
 }
