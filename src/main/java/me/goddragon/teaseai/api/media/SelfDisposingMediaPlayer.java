@@ -1,7 +1,9 @@
 package me.goddragon.teaseai.api.media;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
+import javafx.application.Platform;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaException;
 import javafx.scene.media.MediaPlayer;
@@ -64,7 +66,6 @@ public class SelfDisposingMediaPlayer {
             newMediaPlayer.setOnEndOfMedia(this::asyncOnPlaybackEnded);
             newMediaPlayer.setOnError(this::asyncOnPlaybackEnded);
             newMediaPlayer.setOnHalted(this::asyncOnPlaybackEnded);
-            newMediaPlayer.setOnStalled(this::asyncOnPlaybackEnded);
             newMediaPlayer.setOnStopped(this::asyncOnPlaybackEnded);
             return newMediaPlayer;
 
@@ -88,11 +89,19 @@ public class SelfDisposingMediaPlayer {
     }
 
     private void asyncOnPlaybackEnded() {
-        mediaPlayer.dispose();
-
+        // Release any threads waiting in start()/stop() first, so a slow or stuck
+        // native dispose can never leave them blocked forever.
         playbackStatus.set(PlaybackStatus.NOT_PLAYING);
         synchronized (playbackStatus) {
             playbackStatus.notifyAll();
+        }
+
+        // Multiple terminal events (onEndOfMedia, onStopped, onError, onHalted) can all
+        // fire for the same player. Dispose exactly once, and never synchronously from
+        // inside the media event callback - disposing the native gstreamer pipeline while
+        // it is dispatching its own event, or disposing it twice, deadlocks in gstDispose.
+        if (disposed.compareAndSet(false, true)) {
+            Platform.runLater(mediaPlayer::dispose);
         }
 
         if (asyncCallbackOnPlaybackEnded != null) {
@@ -109,6 +118,7 @@ public class SelfDisposingMediaPlayer {
     private final Runnable asyncCallbackOnPlaybackStarted;
     private final Runnable asyncCallbackOnPlaybackEnded;
     private final MediaPlayer mediaPlayer;
+    private final AtomicBoolean disposed = new AtomicBoolean(false);
     private final AtomicReference<PlaybackStatus> playbackStatus =
             new AtomicReference<>(PlaybackStatus.NOT_PLAYING);
 }

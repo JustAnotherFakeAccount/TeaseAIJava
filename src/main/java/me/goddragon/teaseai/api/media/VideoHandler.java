@@ -69,15 +69,26 @@ public class VideoHandler {
             }
         });
 
-        while (!readyFlag.get()) {
-            try {
-                synchronized (readyFlag) {
-                    readyFlag.wait();
+        // Re-check the guard inside the monitor to avoid a missed wakeup if the UI thread signals
+        // before we start waiting, and bound the wait so a stuck UI thread can never freeze the
+        // script thread forever.
+        final long deadline = System.currentTimeMillis() + UI_SYNC_TIMEOUT_MILLIS;
+        synchronized (readyFlag) {
+            while (!readyFlag.get()) {
+                final long remaining = deadline - System.currentTimeMillis();
+                if (remaining <= 0) {
+                    TeaseLogger.getLogger().log(Level.WARNING,
+                            "Timed out waiting for video user interface to update");
+                    return;
                 }
-            } catch (InterruptedException ex) {
-                TeaseLogger.getLogger().log(Level.WARNING,
-                        "Thread interrupted while initialising video user interface");
-                Thread.currentThread().interrupt();
+                try {
+                    readyFlag.wait(remaining);
+                } catch (InterruptedException ex) {
+                    TeaseLogger.getLogger().log(Level.WARNING,
+                            "Thread interrupted while initialising video user interface");
+                    Thread.currentThread().interrupt();
+                    return;
+                }
             }
         }
     }
@@ -105,4 +116,6 @@ public class VideoHandler {
     private boolean isWaitingForPlaybackToFinish;
     private final Runnable asyncOnVideoPlaybackStarted;
     private final Runnable asyncOnVideoPlaybackEnded;
+
+    private static final long UI_SYNC_TIMEOUT_MILLIS = 30_000L;
 }
